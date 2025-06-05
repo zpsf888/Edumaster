@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '../store/user'
-import HomePage from '../views/HomePage.vue'
 import CourseManagement from '../views/CourseManagement.vue'
 import CourseDetail from '../views/CourseDetail.vue'
 import AISupport from '../views/AISupport.vue'
@@ -10,7 +9,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/home'
+      redirect: '/courses'
     },
     {
       path: '/login',
@@ -23,12 +22,6 @@ const router = createRouter({
       name: 'Register',
       component: () => import('../views/Register.vue'),
       meta: { requiresAuth: false }
-    },
-    {
-      path: '/home',
-      name: 'Home',
-      component: HomePage,
-      meta: { requiresAuth: true }
     },
     {
       path: '/courses',
@@ -58,7 +51,7 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !isAuthenticated) {
     next('/login')
   } else if (!to.meta.requiresAuth && isAuthenticated) {
-    next('/home')
+    next('/courses')
   } else {
     next()
   }

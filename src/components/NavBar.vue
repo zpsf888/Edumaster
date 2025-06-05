@@ -1,6 +1,6 @@
 <template>
   <nav class="navbar">
-    <router-link to="/home" class="logo">EduMaster</router-link>
+    <router-link to="/courses" class="logo">EduMaster</router-link>
     <div class="nav-right">
       <template v-if="userStore.isLoggedIn">
         <div class="user-menu" @click="toggleMenu">

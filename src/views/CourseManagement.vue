@@ -1,6 +1,5 @@
 <template>
   <div class="course-management">
-    <button @click="$router.push('/home')" class="back-btn">返回主页</button>
     <div class="tabs">
       <div class="tabs-left">
         <button 

@@ -71,7 +71,7 @@ const handleSubmit = async () => {
     // 注册成功后自动登录
     const loginSuccess = await userStore.login(form.username, form.password);
     if (loginSuccess) {
-      router.push('/home');
+      router.push('/courses');
     } else {
       errorMessage.value = '注册成功，但自动登录失败，请手动登录';
       router.push('/login');

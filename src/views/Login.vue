@@ -57,7 +57,7 @@ const handleSubmit = async () => {
     
     const success = await userStore.login(form.username, form.password);
     if (success) {
-      router.push('/home');
+      router.push('/courses');
     } else {
       errorMessage.value = '用户名或密码错误';
     }
