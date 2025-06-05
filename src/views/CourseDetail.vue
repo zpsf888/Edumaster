@@ -1,0 +1,750 @@
+<template>
+  <div class="course-detail">
+    <div class="header-actions">
+      <div class="back-button" @click="goBack">
+        <i class="fas fa-arrow-left"></i>
+        返回课程列表
+      </div>
+      <button class="ai-support-btn" @click="goToAISupport">
+        <i class="fas fa-robot"></i>
+        AI智能答疑
+      </button>
+    </div>
+    <div class="course-header">
+      <div class="course-info">
+        <h1>{{ course?.name }}</h1>
+        <p class="instructor">讲师：{{ course?.instructor }}</p>
+        <p class="description">{{ course?.description }}</p>
+        <div class="meta">
+          <span><i class="fas fa-clock"></i> {{ course?.duration }}</span>
+          <span><i class="fas fa-signal"></i> {{ course?.level }}</span>
+          <span><i class="fas fa-chart-line"></i> 学习进度：{{ course?.progress }}%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="course-content">
+      <h2>课程目录</h2>
+      <div class="video-list">
+        <div v-for="video in courseVideos" :key="video.id" class="video-item" 
+          :class="{ 'completed': video.completed }"
+          @click="playVideo(video)">
+          <div class="video-info">
+            <i class="fas" :class="video.completed ? 'fa-check-circle' : 'fa-play-circle'"></i>
+            <span class="video-title">{{ video.title }}</span>
+            <span class="video-duration">{{ video.duration }}</span>
+          </div>
+          <div class="video-actions">
+            <div class="video-progress" v-if="video.completed">
+              <span class="progress-text">已完成</span>
+            </div>
+            <button class="comment-btn" @click.stop="showComments(video)">
+              <i class="fas fa-comments"></i>
+              查看评论
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 视频播放弹窗 -->
+    <div v-if="showVideoPlayer" class="video-player-modal">
+      <div class="video-player-content">
+        <div class="video-player-header">
+          <h3>{{ currentVideo?.title }}</h3>
+          <button class="close-btn" @click="closeVideoPlayer">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="video-player">
+          <video 
+            ref="videoPlayer"
+            :src="currentVideo?.videoUrl" 
+            controls 
+            class="video-element"
+          ></video>
+        </div>
+      </div>
+    </div>
+
+    <!-- 评论区弹窗 -->
+    <div v-if="showCommentModal" class="comment-modal">
+      <div class="comment-content">
+        <div class="comment-header">
+          <h3>{{ currentVideo?.title }} - 评论区</h3>
+          <button class="close-btn" @click="closeComments">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="comment-list">
+          <div v-for="comment in currentVideoComments" :key="comment.id" class="comment-item">
+            <div class="comment-user">
+              <img :src="comment.avatar" :alt="comment.username" class="user-avatar">
+              <span class="username">{{ comment.username }}</span>
+              <span class="comment-time">{{ comment.time }}</span>
+            </div>
+            <p class="comment-text">{{ comment.content }}</p>
+            <div class="comment-actions">
+              <button class="like-btn" @click="likeComment(comment)">
+                <i class="fas" :class="comment.isLiked ? 'fa-heart' : 'fa-heart-o'"></i>
+                {{ comment.likes }}
+              </button>
+              <button class="reply-btn" @click="replyToComment(comment)">
+                <i class="fas fa-reply"></i>
+                回复
+              </button>
+            </div>
+            <div v-if="comment.replies && comment.replies.length > 0" class="reply-list">
+              <div v-for="reply in comment.replies" :key="reply.id" class="reply-item">
+                <div class="comment-user">
+                  <img :src="reply.avatar" :alt="reply.username" class="user-avatar">
+                  <span class="username">{{ reply.username }}</span>
+                  <span class="comment-time">{{ reply.time }}</span>
+                </div>
+                <p class="comment-text">{{ reply.content }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="comment-input">
+          <textarea 
+            v-model="newComment" 
+            placeholder="写下你的评论..."
+            @keyup.enter="submitComment"
+          ></textarea>
+          <button class="submit-btn" @click="submitComment">
+            发表评论
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script lang="ts">
+import { defineComponent, ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+
+interface Video {
+  id: number;
+  title: string;
+  duration: string;
+  completed: boolean;
+  videoUrl: string;
+}
+
+interface CourseDetail {
+  id: number;
+  name: string;
+  instructor: string;
+  description: string;
+  duration: string;
+  level: string;
+  progress: number;
+  image: string;
+}
+
+interface Comment {
+  id: number;
+  username: string;
+  avatar: string;
+  content: string;
+  time: string;
+  likes: number;
+  isLiked: boolean;
+  replies?: Comment[];
+}
+
+export default defineComponent({
+  name: 'CourseDetail',
+  setup() {
+    const route = useRoute()
+    const router = useRouter()
+    const course = ref<CourseDetail | null>(null)
+    const courseVideos = ref<Video[]>([])
+    const showVideoPlayer = ref(false)
+    const currentVideo = ref<Video | null>(null)
+    const videoPlayer = ref<HTMLVideoElement | null>(null)
+    const showCommentModal = ref(false)
+    const currentVideoComments = ref<Comment[]>([])
+    const newComment = ref('')
+
+    const goBack = () => {
+      router.back()
+    }
+
+    const goToAISupport = () => {
+      router.push({
+        name: 'AISupport',
+        params: { id: route.params.id }
+      })
+    }
+
+    onMounted(() => {
+      // 模拟从API获取课程详情
+      const courseId = Number(route.params.id)
+      // 这里应该调用实际的API获取课程详情
+      course.value = {
+        id: courseId,
+        name: 'Vue.js 高级开发',
+        instructor: '张教授',
+        description: '深入学习 Vue.js 框架的高级特性和最佳实践',
+        duration: '30课时',
+        level: '高级',
+        progress: 65,
+        image: '/course-images/vue-advanced.jpg'
+      }
+
+      // 模拟课程视频数据
+      courseVideos.value = [
+        {
+          id: 1,
+          title: '第1章：课程介绍',
+          duration: '10:00',
+          completed: true,
+          videoUrl: '/videos/chapter1.mp4'
+        },
+        {
+          id: 2,
+          title: '第2章：Vue.js 基础回顾',
+          duration: '15:30',
+          completed: true,
+          videoUrl: '/videos/chapter2.mp4'
+        },
+        {
+          id: 3,
+          title: '第3章：组件化开发进阶',
+          duration: '20:15',
+          completed: false,
+          videoUrl: '/videos/chapter3.mp4'
+        },
+        {
+          id: 4,
+          title: '第4章：状态管理',
+          duration: '25:45',
+          completed: false,
+          videoUrl: '/videos/chapter4.mp4'
+        }
+      ]
+    })
+
+    const playVideo = (video: Video) => {
+      currentVideo.value = video
+      showVideoPlayer.value = true
+    }
+
+    const closeVideoPlayer = () => {
+      showVideoPlayer.value = false
+      if (videoPlayer.value) {
+        videoPlayer.value.pause()
+      }
+    }
+
+    const showComments = (video: Video) => {
+      currentVideo.value = video
+      showCommentModal.value = true
+      // 模拟加载评论数据
+      currentVideoComments.value = [
+        {
+          id: 1,
+          username: '学习达人',
+          avatar: '/avatars/user1.jpg',
+          content: '这节课讲得很好，概念讲解得特别清晰！',
+          time: '2024-01-20 14:30',
+          likes: 12,
+          isLiked: false,
+          replies: [
+            {
+              id: 11,
+              username: '前端新手',
+              avatar: '/avatars/user2.jpg',
+              content: '同意，特别是关于组件化的部分讲解很透彻',
+              time: '2024-01-20 15:00',
+              likes: 3,
+              isLiked: false
+            }
+          ]
+        },
+        {
+          id: 2,
+          username: 'Vue爱好者',
+          avatar: '/avatars/user3.jpg',
+          content: '老师讲得很专业，但是希望能多一些实战案例',
+          time: '2024-01-20 16:45',
+          likes: 8,
+          isLiked: false
+        }
+      ]
+    }
+
+    const closeComments = () => {
+      showCommentModal.value = false
+      newComment.value = ''
+    }
+
+    const submitComment = () => {
+      if (!newComment.value.trim()) return
+      
+      const comment: Comment = {
+        id: Date.now(),
+        username: '当前用户',
+        avatar: '/avatars/default.jpg',
+        content: newComment.value,
+        time: new Date().toLocaleString(),
+        likes: 0,
+        isLiked: false
+      }
+      
+      currentVideoComments.value.unshift(comment)
+      newComment.value = ''
+    }
+
+    const likeComment = (comment: Comment) => {
+      comment.isLiked = !comment.isLiked
+      comment.likes += comment.isLiked ? 1 : -1
+    }
+
+    const replyToComment = (comment: Comment) => {
+      newComment.value = `@${comment.username} `
+    }
+
+    return {
+      course,
+      courseVideos,
+      showVideoPlayer,
+      currentVideo,
+      videoPlayer,
+      playVideo,
+      closeVideoPlayer,
+      showCommentModal,
+      currentVideoComments,
+      newComment,
+      showComments,
+      closeComments,
+      submitComment,
+      likeComment,
+      replyToComment,
+      goBack,
+      goToAISupport
+    }
+  }
+})
+</script>
+
+<style scoped>
+.course-detail {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.back-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.2rem;
+  background-color: #f7fafc;
+  border-radius: 8px;
+  color: #3182ce;
+  cursor: pointer;
+  width: fit-content;
+  margin-bottom: 1.5rem;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.back-button:hover {
+  background-color: #e6f3ff;
+  transform: translateX(-5px);
+}
+
+.back-button i {
+  font-size: 1.1rem;
+}
+
+.ai-support-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.2rem;
+  background-color: #3182ce;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.ai-support-btn:hover {
+  background-color: #2c5282;
+  transform: translateY(-2px);
+}
+
+.ai-support-btn i {
+  font-size: 1.1rem;
+}
+
+.course-header {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.course-info h1 {
+  font-size: 2rem;
+  color: #2c5282;
+  margin-bottom: 1rem;
+}
+
+.instructor {
+  color: #4a5568;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.description {
+  color: #718096;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.meta {
+  display: flex;
+  gap: 2rem;
+  color: #4a5568;
+}
+
+.meta span {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.meta i {
+  color: #3182ce;
+}
+
+.course-content {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.course-content h2 {
+  color: #2c5282;
+  margin-bottom: 1.5rem;
+}
+
+.video-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.video-item {
+  padding: 1rem;
+  border-radius: 8px;
+  background-color: #f7fafc;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.video-item:hover {
+  background-color: #e6f3ff;
+  transform: translateX(5px);
+}
+
+.video-item.completed {
+  background-color: #f0fff4;
+}
+
+.video-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.video-info i {
+  color: #3182ce;
+  font-size: 1.2rem;
+}
+
+.video-item.completed i {
+  color: #48bb78;
+}
+
+.video-title {
+  flex: 1;
+  color: #2d3748;
+}
+
+.video-duration {
+  color: #718096;
+}
+
+.video-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.video-progress {
+  margin-top: 0.5rem;
+  color: #48bb78;
+  font-size: 0.9rem;
+}
+
+.comment-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  background-color: #e6f3ff;
+  color: #3182ce;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.comment-btn:hover {
+  background-color: #3182ce;
+  color: white;
+}
+
+.video-player-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.video-player-content {
+  background-color: #ffffff;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 1000px;
+  overflow: hidden;
+}
+
+.video-player-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.video-player-header h3 {
+  color: #2c5282;
+  margin: 0;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #718096;
+  cursor: pointer;
+  font-size: 1.5rem;
+  padding: 0.5rem;
+}
+
+.close-btn:hover {
+  color: #2c5282;
+}
+
+.video-player {
+  padding: 1rem;
+}
+
+.video-element {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background-color: #000000;
+}
+
+.comment-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.comment-content {
+  background-color: #ffffff;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.comment-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+.comment-item {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.comment-user {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.username {
+  font-weight: 500;
+  color: #2d3748;
+}
+
+.comment-time {
+  color: #718096;
+  font-size: 0.9rem;
+}
+
+.comment-text {
+  color: #4a5568;
+  line-height: 1.6;
+  margin: 0.5rem 0;
+}
+
+.comment-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.like-btn, .reply-btn {
+  background: none;
+  border: none;
+  color: #718096;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.like-btn:hover, .reply-btn:hover {
+  color: #3182ce;
+}
+
+.reply-list {
+  margin-left: 3rem;
+  margin-top: 1rem;
+  padding-left: 1rem;
+  border-left: 2px solid #e2e8f0;
+}
+
+.reply-item {
+  margin-bottom: 1rem;
+}
+
+.comment-input {
+  padding: 1.5rem;
+  border-top: 1px solid #e2e8f0;
+  background-color: #f7fafc;
+}
+
+.comment-input textarea {
+  width: 100%;
+  height: 80px;
+  padding: 0.8rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  resize: none;
+  margin-bottom: 1rem;
+}
+
+.submit-btn {
+  padding: 0.8rem 2rem;
+  background-color: #3182ce;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.submit-btn:hover {
+  background-color: #2c5282;
+}
+
+@media (max-width: 768px) {
+  .course-detail {
+    padding: 1rem;
+  }
+
+  .meta {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .video-player-content {
+    width: 95%;
+    margin: 1rem;
+  }
+
+  .comment-content {
+    width: 95%;
+    max-height: 95vh;
+  }
+
+  .comment-list {
+    padding: 1rem;
+  }
+
+  .reply-list {
+    margin-left: 1.5rem;
+  }
+}
+</style> 
