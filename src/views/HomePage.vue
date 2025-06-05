@@ -7,7 +7,17 @@
       </div>
       <div class="nav-buttons">
         <router-link to="/courses" class="course-btn">课程管理</router-link>
-        <button class="login-btn" @click="handleLogin">登录/注册</button>
+        <template v-if="!userStore.isLoggedIn">
+          <router-link to="/login" class="login-btn">登录/注册</router-link>
+        </template>
+        <template v-else>
+          <div class="user-menu" @click="toggleMenu">
+            <i class="fa fa-user"></i> {{ userStore.username }}
+            <div v-if="showMenu" class="dropdown">
+              <button @click="logout">登出</button>
+            </div>
+          </div>
+        </template>
       </div>
     </header>
 
@@ -56,14 +66,32 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue'
+import { defineComponent, ref } from 'vue'
+import { useUserStore } from '../store/user'
+import { useRouter } from 'vue-router'
 
 export default defineComponent({
   name: 'HomePage',
-  methods: {
-    handleLogin() {
-      // 处理登录逻辑
-      console.log('跳转到登录页面')
+  setup() {
+    const userStore = useUserStore()
+    const router = useRouter()
+    const showMenu = ref(false)
+
+    const toggleMenu = () => {
+      showMenu.value = !showMenu.value
+    }
+
+    const logout = () => {
+      userStore.logout()
+      showMenu.value = false
+      router.push('/login')
+    }
+
+    return {
+      userStore,
+      showMenu,
+      toggleMenu,
+      logout
     }
   }
 })
@@ -198,6 +226,48 @@ export default defineComponent({
 
 .course-btn:hover {
   background-color: #bfdbfe;
+}
+
+.user-menu {
+  position: relative;
+  cursor: pointer;
+  padding: 0.8rem 2rem;
+  background-color: #3182ce;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  transition: background-color 0.3s ease;
+}
+
+.user-menu:hover {
+  background-color: #2c5282;
+}
+
+.dropdown {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  z-index: 10;
+  margin-top: 0.5rem;
+}
+
+.dropdown button {
+  background: none;
+  border: none;
+  padding: 8px 16px;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  color: #2c5282;
+}
+
+.dropdown button:hover {
+  background-color: #e6f3ff;
 }
 
 @media (max-width: 768px) {

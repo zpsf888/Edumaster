@@ -1,5 +1,6 @@
 <template>
   <div class="course-management">
+    <button @click="$router.push('/home')" class="back-btn">返回主页</button>
     <div class="tabs">
       <div class="tabs-left">
         <button 
@@ -1089,5 +1090,15 @@ export default defineComponent({
 
 .ai-support-btn i {
   font-size: 1.2rem;
+}
+
+.back-btn {
+  margin: 16px 0;
+  padding: 6px 16px;
+  background: #4caf50;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
 }
 </style> 
