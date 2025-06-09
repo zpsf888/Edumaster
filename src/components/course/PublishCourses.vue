@@ -6,7 +6,14 @@
         发布新课程
       </button>
     </div>
-    <div class="courses-grid">
+    <div v-if="isLoading" class="loading-state">
+      <i class="fas fa-spinner fa-spin"></i>
+      加载中...
+    </div>
+    <div v-else-if="publishedCourses.length === 0" class="empty-state">
+      暂无发布的课程
+    </div>
+    <div v-else class="courses-grid">
       <div v-for="course in publishedCourses" :key="course.id" class="course-card">
         <div class="course-info">
           <h3>{{ course.name }}</h3>
@@ -76,7 +83,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue'
+import { defineComponent, ref, onMounted } from 'vue'
 import axios from 'axios'
 
 interface Course {
@@ -98,33 +105,54 @@ interface ApiResponse {
   courseId: number;
 }
 
+interface CourseListResponse {
+  code: number;
+  message: string;
+  data: {
+    courseId: number;
+    title: string;
+    description: string;
+    creatorId: number;
+  }[];
+}
+
 export default defineComponent({
   name: 'PublishCourses',
   setup() {
     const showAddCourseModal = ref(false)
     const isSubmitting = ref(false)
     const isDeleting = ref<number | null>(null)
+    const isLoading = ref(true)
     const newCourse = ref<NewCourse>({
       name: '',
       description: ''
     })
 
-    const publishedCourses = ref<Course[]>([
-      {
-        id: 1,
-        name: 'Vue.js 高级开发',
-        instructor: '当前用户',
-        description: '深入学习 Vue.js 框架的高级特性和最佳实践',
-        courseNumber: 'CS101'
-      },
-      {
-        id: 2,
-        name: 'TypeScript 实战',
-        instructor: '当前用户',
-        description: '使用 TypeScript 开发大型应用的完整指南',
-        courseNumber: 'CS102'
+    const publishedCourses = ref<Course[]>([])
+
+    const fetchPublishedCourses = async () => {
+      try {
+        isLoading.value = true
+        const response = await axios.get<CourseListResponse>('http://localhost:8081/users/1/courses')
+
+        if (response.data.code === 200) {
+          publishedCourses.value = response.data.data.map(course => ({
+            id: course.courseId,
+            name: course.title,
+            instructor: '当前用户',
+            description: course.description,
+            courseNumber: `CS${course.courseId.toString().padStart(3, '0')}`
+          }))
+        } else {
+          alert('获取课程列表失败：' + response.data.message)
+        }
+      } catch (error) {
+        console.error('获取课程列表时出错：', error)
+        alert('获取课程列表失败，请稍后重试')
+      } finally {
+        isLoading.value = false
       }
-    ])
+    }
 
     const generateCourseNumber = () => {
       const lastCourse = publishedCourses.value[publishedCourses.value.length - 1]
@@ -189,7 +217,6 @@ export default defineComponent({
         const response = await axios.delete<ApiResponse>(`http://localhost:8081/courses/${courseId}`)
 
         if (response.data.code === 201) {
-          // 从列表中移除被删除的课程
           publishedCourses.value = publishedCourses.value.filter(course => course.id !== courseId)
           alert('课程删除成功！')
         } else {
@@ -207,11 +234,16 @@ export default defineComponent({
       }
     }
 
+    onMounted(() => {
+      fetchPublishedCourses()
+    })
+
     return {
       publishedCourses,
       showAddCourseModal,
       isSubmitting,
       isDeleting,
+      isLoading,
       newCourse,
       closeModal,
       submitNewCourse,
@@ -498,5 +530,22 @@ export default defineComponent({
 
 .submit-btn i {
   margin-right: 0.5rem;
+}
+
+.loading-state,
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.loading-state i {
+  margin-right: 0.5rem;
+  font-size: 1.5rem;
+}
+
+.empty-state {
+  color: #999;
 }
 </style> 
