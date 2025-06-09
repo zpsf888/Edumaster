@@ -19,9 +19,13 @@
               <i class="fas fa-edit"></i>
               编辑课程
             </button>
-            <button class="card-btn delete-btn" @click="handleDeleteSingleCourse(course.id)">
-              <i class="fas fa-trash"></i>
-              删除课程
+            <button 
+              class="card-btn delete-btn" 
+              @click="handleDeleteSingleCourse(course.id)"
+              :disabled="isDeleting === course.id"
+            >
+              <i class="fas" :class="isDeleting === course.id ? 'fa-spinner fa-spin' : 'fa-trash'"></i>
+              {{ isDeleting === course.id ? '删除中...' : '删除课程' }}
             </button>
           </div>
         </div>
@@ -99,6 +103,7 @@ export default defineComponent({
   setup() {
     const showAddCourseModal = ref(false)
     const isSubmitting = ref(false)
+    const isDeleting = ref<number | null>(null)
     const newCourse = ref<NewCourse>({
       name: '',
       description: ''
@@ -173,9 +178,32 @@ export default defineComponent({
       console.log('编辑课程:', courseId)
     }
 
-    const handleDeleteSingleCourse = (courseId: number) => {
-      if (confirm('确定要删除这个课程吗？')) {
-        console.log('删除课程:', courseId)
+    const handleDeleteSingleCourse = async (courseId: number) => {
+      if (!confirm('确定要删除这个课程吗？')) {
+        return
+      }
+
+      try {
+        isDeleting.value = courseId
+        
+        const response = await axios.delete<ApiResponse>(`http://localhost:8081/courses/${courseId}`)
+
+        if (response.data.code === 201) {
+          // 从列表中移除被删除的课程
+          publishedCourses.value = publishedCourses.value.filter(course => course.id !== courseId)
+          alert('课程删除成功！')
+        } else {
+          alert('课程删除失败：' + response.data.message)
+        }
+      } catch (error: any) {
+        if (error.response?.status === 404) {
+          alert('课程不存在')
+        } else {
+          console.error('删除课程时出错：', error)
+          alert('删除课程失败，请稍后重试')
+        }
+      } finally {
+        isDeleting.value = null
       }
     }
 
@@ -183,6 +211,7 @@ export default defineComponent({
       publishedCourses,
       showAddCourseModal,
       isSubmitting,
+      isDeleting,
       newCourse,
       closeModal,
       submitNewCourse,
@@ -326,6 +355,15 @@ export default defineComponent({
 
 .delete-btn:hover {
   background-color: #da190b;
+}
+
+.delete-btn:disabled {
+  background-color: #ffcdd2;
+  cursor: not-allowed;
+}
+
+.delete-btn i {
+  margin-right: 0.5rem;
 }
 
 @media (max-width: 1200px) {
