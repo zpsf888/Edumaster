@@ -10,10 +10,16 @@
           <i class="fas fa-arrow-left"></i>
           返回课程列表
         </div>
-        <button class="ai-support-btn" @click="goToAISupport">
-          <i class="fas fa-robot"></i>
-          AI智能答疑
-        </button>
+        <div class="right-actions">
+          <button class="new-lesson-btn" @click="openNewLessonModal">
+            <i class="fas fa-plus"></i>
+            新建课程
+          </button>
+          <button class="ai-support-btn" @click="goToAISupport">
+            <i class="fas fa-robot"></i>
+            AI智能答疑
+          </button>
+        </div>
       </div>
       <div class="course-header">
         <div class="course-info">
@@ -168,6 +174,66 @@
         </div>
       </div>
     </div>
+
+    <!-- 新建课程弹窗 -->
+    <div v-if="showNewLessonModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>新建课程</h2>
+          <button class="close-btn" @click="closeNewLessonModal">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form @submit.prevent="submitNewLesson">
+            <div class="form-group">
+              <label>课号</label>
+              <input type="text" :value="course?.courseNumber" disabled class="form-control" />
+            </div>
+            <div class="form-group">
+              <label>小课号 <span class="required">*</span></label>
+              <input type="text" v-model="newLessonForm.lessonNumber" class="form-control" placeholder="请输入小课号" />
+            </div>
+            <div class="form-group">
+              <label>小课标题 <span class="required">*</span></label>
+              <input type="text" v-model="newLessonForm.title" class="form-control" placeholder="请输入小课标题" />
+            </div>
+            <div class="form-group">
+              <label>小课简介 <span class="required">*</span></label>
+              <textarea v-model="newLessonForm.description" class="form-control" rows="4" placeholder="请输入小课简介"></textarea>
+            </div>
+            <div class="form-group">
+              <label>上传文件</label>
+              <div class="file-upload">
+                <input 
+                  type="file" 
+                  class="file-input" 
+                  ref="fileInput"
+                  @change="handleFileSelect"
+                />
+                <button 
+                  type="button" 
+                  class="upload-btn"
+                  @click="triggerFileInput"
+                  :disabled="isUploading"
+                >
+                  <i class="fas" :class="isUploading ? 'fa-spinner fa-spin' : 'fa-upload'"></i>
+                  {{ isUploading ? '上传中...' : '选择文件' }}
+                </button>
+                <span class="file-name">{{ selectedFileName }}</span>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="cancel-btn" @click="closeNewLessonModal">取消</button>
+              <button type="submit" class="submit-btn" :disabled="isSubmittingNewLesson">
+                <i class="fas fa-spinner fa-spin" v-if="isSubmittingNewLesson"></i>
+                {{ isSubmittingNewLesson ? '提交中...' : '提交' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -236,6 +302,31 @@ interface EditForm {
   description: string;
 }
 
+interface NewLessonForm {
+  lessonNumber: string;
+  title: string;
+  description: string;
+  fileUrl: string;
+}
+
+interface CreateLessonRequest {
+  courseId: number;
+  lessonId: number;
+  title: string;
+  videoUrl: string;
+  description: string;
+}
+
+interface CreateLessonResponse {
+  code: number;
+  message: string;
+}
+
+interface UploadResponse {
+  message: string;
+  url: string;
+}
+
 export default defineComponent({
   name: 'CourseDetail',
   setup() {
@@ -256,6 +347,17 @@ export default defineComponent({
       name: '',
       description: ''
     })
+    const showNewLessonModal = ref(false)
+    const newLessonForm = ref<NewLessonForm>({
+      lessonNumber: '',
+      title: '',
+      description: '',
+      fileUrl: undefined
+    })
+    const isSubmittingNewLesson = ref(false)
+    const fileInput = ref<HTMLInputElement | null>(null)
+    const selectedFileName = ref('未选择文件')
+    const isUploading = ref(false)
 
     const fetchCourseBasicInfo = async (courseId: number) => {
       try {
@@ -304,6 +406,9 @@ export default defineComponent({
             completed: false, // 这里可以后续添加完成状态
             videoUrl: lesson.videoUrl
           }))
+        } else if (response.data.code === 404 && response.data.message === '该课程暂无章节信息') {
+          // 如果是404且消息为"该课程暂无章节信息"，不显示错误提示
+          courseVideos.value = []
         } else {
           alert('获取课程详情失败：' + response.data.message)
         }
@@ -450,6 +555,103 @@ export default defineComponent({
       newComment.value = `@${comment.username} `
     }
 
+    const openNewLessonModal = () => {
+      showNewLessonModal.value = true
+    }
+
+    const closeNewLessonModal = () => {
+      showNewLessonModal.value = false
+      newLessonForm.value = {
+        lessonNumber: '',
+        title: '',
+        description: '',
+        fileUrl: undefined
+      }
+      selectedFileName.value = '未选择文件'
+    }
+
+    const submitNewLesson = async () => {
+      if (!newLessonForm.value.lessonNumber || !newLessonForm.value.title || !newLessonForm.value.description) {
+        alert('请填写所有必填字段')
+        return
+      }
+
+      if (!newLessonForm.value.fileUrl) {
+        alert('请上传课程文件')
+        return
+      }
+
+      try {
+        isSubmittingNewLesson.value = true
+        const courseId = Number(route.params.id)
+        
+        const requestData: CreateLessonRequest = {
+          courseId: courseId,
+          lessonId: Number(newLessonForm.value.lessonNumber),
+          title: newLessonForm.value.title,
+          videoUrl: newLessonForm.value.fileUrl,
+          description: newLessonForm.value.description
+        }
+
+        const response = await axios.post<CreateLessonResponse>(
+          'http://localhost:8081/course-lessons',
+          requestData
+        )
+
+        if (response.data.code === 201) {
+          alert('课程课节创建成功')
+          closeNewLessonModal()
+          // 刷新课程列表
+          await fetchCourseDetails()
+        } else {
+          throw new Error(response.data.message || '创建失败')
+        }
+      } catch (error) {
+        console.error('创建课程课节时出错：', error)
+        alert(error instanceof Error ? error.message : '创建课程课节失败，请稍后重试')
+      } finally {
+        isSubmittingNewLesson.value = false
+      }
+    }
+
+    const handleFileSelect = async (event: Event) => {
+      const input = event.target as HTMLInputElement
+      if (!input.files || input.files.length === 0) return
+
+      const file = input.files[0]
+      selectedFileName.value = file.name
+      isUploading.value = true
+
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+
+        const response = await axios.post<UploadResponse>('http://localhost:8081/uploadFile', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        })
+
+        if (response.data.url) {
+          newLessonForm.value.fileUrl = response.data.url
+          alert('文件上传成功')
+        } else {
+          throw new Error('上传失败：未获取到文件URL')
+        }
+      } catch (error) {
+        console.error('文件上传失败：', error)
+        alert('文件上传失败，请重试')
+        selectedFileName.value = '未选择文件'
+        newLessonForm.value.fileUrl = undefined
+      } finally {
+        isUploading.value = false
+      }
+    }
+
+    const triggerFileInput = () => {
+      fileInput.value?.click()
+    }
+
     return {
       course,
       courseVideos,
@@ -473,7 +675,18 @@ export default defineComponent({
       isSubmitting,
       closeEditModal,
       submitEdit,
-      isLoading
+      isLoading,
+      showNewLessonModal,
+      newLessonForm,
+      isSubmittingNewLesson,
+      openNewLessonModal,
+      closeNewLessonModal,
+      submitNewLesson,
+      fileInput,
+      selectedFileName,
+      isUploading,
+      handleFileSelect,
+      triggerFileInput
     }
   }
 })
@@ -515,6 +728,29 @@ export default defineComponent({
 
 .back-button i {
   font-size: 1.1rem;
+}
+
+.right-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.new-lesson-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.3s;
+}
+
+.new-lesson-btn:hover {
+  background-color: #45a049;
 }
 
 .ai-support-btn {
@@ -1064,5 +1300,111 @@ export default defineComponent({
 .loading-state i {
   margin-right: 0.5rem;
   font-size: 1.5rem;
+}
+
+.required {
+  color: #e53e3e;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.form-control:disabled {
+  background-color: #f7fafc;
+  cursor: not-allowed;
+}
+
+.file-upload {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.file-input {
+  display: none;
+}
+
+.upload-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #4a5568;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s;
+  min-width: 100px;
+  justify-content: center;
+}
+
+.upload-btn:hover:not(:disabled) {
+  background-color: #2d3748;
+}
+
+.upload-btn:disabled {
+  background-color: #a0aec0;
+  cursor: not-allowed;
+}
+
+.file-name {
+  color: #718096;
+  font-size: 0.9rem;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.cancel-btn {
+  padding: 0.5rem 1rem;
+  background-color: #e2e8f0;
+  color: #4a5568;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.3s;
+}
+
+.cancel-btn:hover {
+  background-color: #cbd5e0;
+}
+
+.submit-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #4299e1;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.3s;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background-color: #3182ce;
+}
+
+.submit-btn:disabled {
+  background-color: #a0aec0;
+  cursor: not-allowed;
 }
 </style> 
