@@ -97,6 +97,14 @@
                 <i class="fas fa-comments"></i>
                 查看评论
               </button>
+              <button 
+                class="delete-btn" 
+                @click.stop="handleDeleteLesson(course?.id || 0, video.id)"
+                :disabled="isDeleting && deletingLessonId === video.id"
+              >
+                <i class="fas" :class="isDeleting && deletingLessonId === video.id ? 'fa-spinner fa-spin' : 'fa-trash'"></i>
+                {{ isDeleting && deletingLessonId === video.id ? '删除中...' : '删除' }}
+              </button>
             </div>
           </div>
         </div>
@@ -327,6 +335,11 @@ interface UploadResponse {
   url: string;
 }
 
+interface DeleteLessonResponse {
+  code: number;
+  message: string;
+}
+
 export default defineComponent({
   name: 'CourseDetail',
   setup() {
@@ -358,6 +371,8 @@ export default defineComponent({
     const fileInput = ref<HTMLInputElement | null>(null)
     const selectedFileName = ref('未选择文件')
     const isUploading = ref(false)
+    const isDeleting = ref(false)
+    const deletingLessonId = ref<number | null>(null)
 
     const fetchCourseBasicInfo = async (courseId: number) => {
       try {
@@ -652,6 +667,35 @@ export default defineComponent({
       fileInput.value?.click()
     }
 
+    const handleDeleteLesson = async (courseId: number, lessonId: number) => {
+      if (!confirm('确定要删除这节课程吗？')) {
+        return
+      }
+
+      try {
+        isDeleting.value = true
+        deletingLessonId.value = lessonId
+
+        const response = await axios.delete<DeleteLessonResponse>(
+          `http://localhost:8081/course-lessons/${courseId}/${lessonId}`
+        )
+
+        if (response.data.code === 200) {
+          alert('课程课节删除成功')
+          // 刷新课程列表
+          await fetchCourseDetails()
+        } else {
+          throw new Error(response.data.message || '删除失败')
+        }
+      } catch (error) {
+        console.error('删除课程课节时出错：', error)
+        alert(error instanceof Error ? error.message : '删除课程课节失败，请稍后重试')
+      } finally {
+        isDeleting.value = false
+        deletingLessonId.value = null
+      }
+    }
+
     return {
       course,
       courseVideos,
@@ -686,7 +730,10 @@ export default defineComponent({
       selectedFileName,
       isUploading,
       handleFileSelect,
-      triggerFileInput
+      triggerFileInput,
+      isDeleting,
+      deletingLessonId,
+      handleDeleteLesson
     }
   }
 })
@@ -879,9 +926,8 @@ export default defineComponent({
 
 .video-actions {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-top: 0.5rem;
+  gap: 1rem;
 }
 
 .video-progress {
@@ -1404,6 +1450,35 @@ export default defineComponent({
 }
 
 .submit-btn:disabled {
+  background-color: #a0aec0;
+  cursor: not-allowed;
+}
+
+.video-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.delete-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #e53e3e;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s;
+}
+
+.delete-btn:hover:not(:disabled) {
+  background-color: #c53030;
+}
+
+.delete-btn:disabled {
   background-color: #a0aec0;
   cursor: not-allowed;
 }
