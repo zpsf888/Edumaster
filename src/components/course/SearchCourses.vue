@@ -14,16 +14,21 @@
       </button>
     </div>
 
-    <div class="courses-grid">
-      <div v-for="course in filteredCourses" :key="course.id" class="course-card">
+    <div v-if="isLoading" class="loading-state">
+      <i class="fas fa-spinner fa-spin"></i>
+      加载中...
+    </div>
+
+    <div v-else class="courses-grid">
+      <div v-for="course in filteredCourses" :key="course.course_id" class="course-card">
         <div class="course-info">
-          <h3>{{ course.name }}</h3>
+          <h3>{{ course.title }}</h3>
           <div class="course-meta">
             <span>课号：{{ course.courseNumber }}</span>
           </div>
           <p class="course-description">{{ course.description }}</p>
           <div class="card-actions">
-            <button class="card-btn join-btn" @click="handleJoinCourse(course.id)">
+            <button class="card-btn join-btn" @click="handleJoinCourse(course.course_id)">
               <i class="fas fa-sign-in-alt"></i>
               加入课程
             </button>
@@ -35,48 +40,78 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue'
+import { defineComponent, ref, computed, onMounted } from 'vue'
+import axios from 'axios'
 
 interface Course {
-  id: number;
-  name: string;
-  instructor: string;
+  course_id: number;
+  creator_id: number;
   description: string;
+  title: string;
   courseNumber: string;
+}
+
+interface CourseResponse {
+  code: number;
+  data: Course[];
+  message: string;
 }
 
 export default defineComponent({
   name: 'SearchCourses',
   setup() {
     const searchQuery = ref('')
-    const filteredCourses = ref<Course[]>([
-      {
-        id: 1,
-        name: 'Vue.js 高级开发',
-        instructor: '张老师',
-        description: '深入学习 Vue.js 框架的高级特性和最佳实践',
-        courseNumber: 'CS101'
-      },
-      {
-        id: 2,
-        name: 'TypeScript 实战',
-        instructor: '李老师',
-        description: '使用 TypeScript 开发大型应用的完整指南',
-        courseNumber: 'CS102'
+    const courses = ref<Course[]>([])
+    const isLoading = ref(true)
+
+    const fetchCourses = async () => {
+      try {
+        isLoading.value = true
+        const response = await axios.get<CourseResponse>('http://localhost:8081/courses')
+        
+        if (response.data.code === 200) {
+          courses.value = response.data.data.map(course => ({
+            ...course,
+            courseNumber: `CS${course.course_id.toString().padStart(3, '0')}`
+          }))
+        } else {
+          throw new Error(response.data.message || '获取课程列表失败')
+        }
+      } catch (error) {
+        console.error('获取课程列表时出错：', error)
+        alert(error instanceof Error ? error.message : '获取课程列表失败，请稍后重试')
+      } finally {
+        isLoading.value = false
       }
-    ])
+    }
+
+    const filteredCourses = computed(() => {
+      if (!searchQuery.value) return courses.value
+      
+      const query = searchQuery.value.toLowerCase()
+      return courses.value.filter(course => 
+        course.title.toLowerCase().includes(query) ||
+        course.description.toLowerCase().includes(query) ||
+        course.courseNumber.toLowerCase().includes(query)
+      )
+    })
 
     const handleSearch = () => {
-      console.log('搜索课程:', searchQuery.value)
+      // 搜索逻辑已通过计算属性实现
     }
 
     const handleJoinCourse = (courseId: number) => {
       console.log('加入课程:', courseId)
     }
 
+    onMounted(() => {
+      fetchCourses()
+    })
+
     return {
       searchQuery,
       filteredCourses,
+      isLoading,
       handleSearch,
       handleJoinCourse
     }
@@ -233,5 +268,19 @@ export default defineComponent({
     grid-template-columns: 1fr;
     gap: 2rem;
   }
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  color: #4a5568;
+  font-size: 1.2rem;
+}
+
+.loading-state i {
+  margin-right: 0.5rem;
+  font-size: 1.5rem;
 }
 </style> 
