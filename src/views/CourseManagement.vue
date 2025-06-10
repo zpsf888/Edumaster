@@ -12,7 +12,6 @@
         </button>
       </div>
       <button class="ai-support-btn" @click="goToAISupport">
-        <i class="fas fa-robot"></i>
         AI智能答疑
       </button>
     </div>
@@ -76,11 +75,11 @@ export default defineComponent({
 
 <style scoped>
 .course-management {
-  padding: 2rem;
+  padding: 0;
   background-color: #f0f8ff;
   min-height: 100vh;
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
 }
 
 .tabs {
@@ -91,7 +90,7 @@ export default defineComponent({
   margin-bottom: 2rem;
   background-color: #ffffff;
   padding: 1.5rem;
-  border-radius: 12px;
+  border-radius: 0;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 

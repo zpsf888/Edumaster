@@ -43,10 +43,11 @@ function logout() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 32px;
+  padding: 0 1rem;
   height: 56px;
   background: #fff;
   border-bottom: 1px solid #eee;
+  width: 100%;
 }
 .logo {
   font-weight: bold;
@@ -57,13 +58,15 @@ function logout() {
 .nav-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 1rem;
+  margin-right: 1rem;
 }
 .nav-right a {
   color: #3182ce;
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s;
+  padding: 0.5rem 1rem;
 }
 .nav-right a:hover {
   color: #2c5282;

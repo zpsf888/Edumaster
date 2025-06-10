@@ -12,11 +12,9 @@
         </div>
         <div class="right-actions">
           <button class="new-lesson-btn" @click="openNewLessonModal">
-            <i class="fas fa-plus"></i>
             新建课程
           </button>
           <button class="ai-support-btn" @click="goToAISupport">
-            <i class="fas fa-robot"></i>
             AI智能答疑
           </button>
         </div>

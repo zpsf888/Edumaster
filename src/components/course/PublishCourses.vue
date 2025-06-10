@@ -269,9 +269,9 @@ export default defineComponent({
 .action-buttons {
   display: flex;
   gap: 1rem;
-  padding: 0 1rem;
+  padding: 0;
   max-width: 1400px;
-  margin: 0 auto;
+  margin: 0;
   width: 100%;
 }
 
@@ -390,7 +390,7 @@ export default defineComponent({
   color: white;
 }
 
-.delete-btn:hover {
+.delete-btn:hover:not(:disabled) {
   background-color: #da190b;
 }
 

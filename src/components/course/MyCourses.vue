@@ -15,7 +15,6 @@
           <p class="course-description">{{ course.description }}</p>
           <div class="card-actions">
             <button class="card-btn continue-btn" @click="handleContinueCourse(course.courseId)">
-              <i class="fas fa-play"></i>
               继续学习
             </button>
             <button 
@@ -23,7 +22,6 @@
               @click="handleQuitCourse(course.courseId)"
               :disabled="quittingCourseId === course.courseId"
             >
-              <i class="fas" :class="quittingCourseId === course.courseId ? 'fa-spinner fa-spin' : 'fa-sign-out-alt'"></i>
               {{ quittingCourseId === course.courseId ? '退出中...' : '退出课程' }}
             </button>
           </div>
@@ -217,10 +215,6 @@ export default defineComponent({
   transition: all 0.3s ease;
 }
 
-.card-btn i {
-  font-size: 1rem;
-}
-
 .continue-btn {
   background-color: #4CAF50;
   color: white;
@@ -235,12 +229,12 @@ export default defineComponent({
   color: white;
 }
 
-.quit-btn:hover {
+.quit-btn:hover:not(:disabled) {
   background-color: #da190b;
 }
 
 .quit-btn:disabled {
-  background-color: #a0aec0;
+  background-color: #ffcdd2;
   cursor: not-allowed;
 }
 

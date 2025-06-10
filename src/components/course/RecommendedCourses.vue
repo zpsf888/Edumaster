@@ -8,7 +8,6 @@
         @click="generateRecommendations"
         :disabled="isGenerating"
       >
-        <i class="fas" :class="isGenerating ? 'fa-spinner fa-spin' : 'fa-sync-alt'"></i>
         {{ isGenerating ? '生成中...' : '重新生成推荐' }}
       </button>
     </div>
@@ -27,7 +26,6 @@
           <p class="course-description">{{ course.description }}</p>
           <div class="card-actions">
             <button class="card-btn join-btn" @click="handleJoinCourse(course.id)">
-              <i class="fas fa-sign-in-alt"></i>
               加入课程
             </button>
           </div>
@@ -137,6 +135,7 @@ export default defineComponent({
   font-weight: 500;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   transition: all 0.3s ease;
 }
@@ -148,10 +147,6 @@ export default defineComponent({
 .generate-btn:disabled {
   background-color: #90caf9;
   cursor: not-allowed;
-}
-
-.generate-btn i {
-  font-size: 1.1rem;
 }
 
 .courses-grid {

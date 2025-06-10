@@ -9,7 +9,6 @@
         class="search-input"
       >
       <button class="search-btn" @click="handleSearch" :disabled="isSearching">
-        <i class="fas" :class="isSearching ? 'fa-spinner fa-spin' : 'fa-search'"></i>
         {{ isSearching ? '搜索中...' : '搜索' }}
       </button>
     </div>
@@ -33,7 +32,6 @@
               @click="handleJoinCourse(course.course_id)"
               :disabled="joiningCourseId === course.course_id"
             >
-              <i class="fas" :class="joiningCourseId === course.course_id ? 'fa-spinner fa-spin' : 'fa-sign-in-alt'"></i>
               {{ joiningCourseId === course.course_id ? '加入中...' : '加入课程' }}
             </button>
           </div>
@@ -200,7 +198,7 @@ export default defineComponent({
 
 .search-btn {
   padding: 0.8rem 1.5rem;
-  background-color: #2196F3;
+  background-color: #3182ce;
   color: white;
   border: none;
   border-radius: 8px;
@@ -209,16 +207,18 @@ export default defineComponent({
   font-weight: 500;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   transition: all 0.3s ease;
 }
 
-.search-btn:hover {
-  background-color: #1976D2;
+.search-btn:hover:not(:disabled) {
+  background-color: #2c5282;
 }
 
-.search-btn i {
-  font-size: 1.1rem;
+.search-btn:disabled {
+  background-color: #90caf9;
+  cursor: not-allowed;
 }
 
 .courses-grid {
@@ -330,10 +330,5 @@ export default defineComponent({
 .loading-state i {
   margin-right: 0.5rem;
   font-size: 1.5rem;
-}
-
-.search-btn:disabled {
-  background-color: #a0aec0;
-  cursor: not-allowed;
 }
 </style> 

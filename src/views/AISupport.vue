@@ -1,10 +1,9 @@
 <template>
   <div class="ai-support">
     <div class="header">
-      <div class="back-button" @click="goBack">
-        <i class="fas fa-arrow-left"></i>
+      <button class="back-btn" @click="goBack">
         返回课程
-      </div>
+      </button>
       <h1>AI智能答疑</h1>
     </div>
 
@@ -181,10 +180,7 @@ export default defineComponent({
   margin: 0;
 }
 
-.back-button {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.back-btn {
   padding: 0.8rem 1.2rem;
   background-color: #f7fafc;
   border-radius: 8px;
@@ -193,7 +189,7 @@ export default defineComponent({
   transition: all 0.3s ease;
 }
 
-.back-button:hover {
+.back-btn:hover {
   background-color: #e6f3ff;
   transform: translateX(-5px);
 }
