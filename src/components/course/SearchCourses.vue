@@ -4,13 +4,13 @@
       <input
         type="text"
         v-model="searchQuery"
-        @input="handleSearch"
+        @keyup.enter="handleSearch"
         placeholder="搜索课程..."
         class="search-input"
       >
-      <button class="search-btn" @click="handleSearch">
-        <i class="fas fa-search"></i>
-        搜索
+      <button class="search-btn" @click="handleSearch" :disabled="isSearching">
+        <i class="fas" :class="isSearching ? 'fa-spinner fa-spin' : 'fa-search'"></i>
+        {{ isSearching ? '搜索中...' : '搜索' }}
       </button>
     </div>
 
@@ -20,7 +20,7 @@
     </div>
 
     <div v-else class="courses-grid">
-      <div v-for="course in filteredCourses" :key="course.course_id" class="course-card">
+      <div v-for="course in courses" :key="course.course_id" class="course-card">
         <div class="course-info">
           <h3>{{ course.title }}</h3>
           <div class="course-meta">
@@ -63,6 +63,7 @@ export default defineComponent({
     const searchQuery = ref('')
     const courses = ref<Course[]>([])
     const isLoading = ref(true)
+    const isSearching = ref(false)
 
     const fetchCourses = async () => {
       try {
@@ -85,19 +86,34 @@ export default defineComponent({
       }
     }
 
-    const filteredCourses = computed(() => {
-      if (!searchQuery.value) return courses.value
-      
-      const query = searchQuery.value.toLowerCase()
-      return courses.value.filter(course => 
-        course.title.toLowerCase().includes(query) ||
-        course.description.toLowerCase().includes(query) ||
-        course.courseNumber.toLowerCase().includes(query)
-      )
-    })
+    const searchCourses = async (title: string) => {
+      if (!title.trim()) {
+        await fetchCourses()
+        return
+      }
 
-    const handleSearch = () => {
-      // 搜索逻辑已通过计算属性实现
+      try {
+        isSearching.value = true
+        const response = await axios.get<CourseResponse>(`http://localhost:8081/courses/search?title=${encodeURIComponent(title)}`)
+        
+        if (response.data.code === 200) {
+          courses.value = response.data.data.map(course => ({
+            ...course,
+            courseNumber: `CS${course.course_id.toString().padStart(3, '0')}`
+          }))
+        } else {
+          throw new Error(response.data.message || '搜索课程失败')
+        }
+      } catch (error) {
+        console.error('搜索课程时出错：', error)
+        alert(error instanceof Error ? error.message : '搜索课程失败，请稍后重试')
+      } finally {
+        isSearching.value = false
+      }
+    }
+
+    const handleSearch = async () => {
+      await searchCourses(searchQuery.value)
     }
 
     const handleJoinCourse = (courseId: number) => {
@@ -110,8 +126,9 @@ export default defineComponent({
 
     return {
       searchQuery,
-      filteredCourses,
+      courses,
       isLoading,
+      isSearching,
       handleSearch,
       handleJoinCourse
     }
@@ -282,5 +299,10 @@ export default defineComponent({
 .loading-state i {
   margin-right: 0.5rem;
   font-size: 1.5rem;
+}
+
+.search-btn:disabled {
+  background-color: #a0aec0;
+  cursor: not-allowed;
 }
 </style> 
