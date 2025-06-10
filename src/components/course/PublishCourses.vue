@@ -85,6 +85,7 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted } from 'vue'
 import axios from 'axios'
+import { useRouter } from 'vue-router'
 
 interface Course {
   id: number;
@@ -119,6 +120,7 @@ interface CourseListResponse {
 export default defineComponent({
   name: 'PublishCourses',
   setup() {
+    const router = useRouter()
     const showAddCourseModal = ref(false)
     const isSubmitting = ref(false)
     const isDeleting = ref<number | null>(null)
@@ -203,7 +205,10 @@ export default defineComponent({
     }
 
     const handleEditCourse = (courseId: number) => {
-      console.log('编辑课程:', courseId)
+      router.push({
+        name: 'CourseDetail',
+        params: { id: courseId.toString() }
+      })
     }
 
     const handleDeleteSingleCourse = async (courseId: number) => {

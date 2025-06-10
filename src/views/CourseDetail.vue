@@ -12,13 +12,60 @@
     </div>
     <div class="course-header">
       <div class="course-info">
-        <h1>{{ course?.name }}</h1>
+        <div class="title-section">
+          <h1>{{ course?.name }}</h1>
+          <button class="edit-btn" @click="showEditModal = true">
+            <i class="fas fa-edit"></i>
+            编辑课程简介
+          </button>
+        </div>
         <p class="instructor">讲师：{{ course?.instructor }}</p>
         <p class="description">{{ course?.description }}</p>
         <div class="meta">
           <span><i class="fas fa-clock"></i> {{ course?.duration }}</span>
           <span><i class="fas fa-signal"></i> {{ course?.level }}</span>
           <span><i class="fas fa-chart-line"></i> 学习进度：{{ course?.progress }}%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 编辑课程弹窗 -->
+    <div v-if="showEditModal" class="modal-overlay" @click="closeEditModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h2>编辑课程简介</h2>
+          <button class="close-btn" @click="closeEditModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form @submit.prevent="submitEdit">
+            <div class="form-group">
+              <label for="courseName">课程名称</label>
+              <input
+                type="text"
+                id="courseName"
+                v-model="editForm.name"
+                placeholder="请输入课程名称"
+                required
+              >
+            </div>
+            <div class="form-group">
+              <label for="courseDescription">课程简介</label>
+              <textarea
+                id="courseDescription"
+                v-model="editForm.description"
+                placeholder="请输入课程简介"
+                rows="4"
+                required
+              ></textarea>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="cancel-btn" @click="closeEditModal">取消</button>
+              <button type="submit" class="submit-btn" :disabled="isSubmitting">
+                <i class="fas" :class="isSubmitting ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+                {{ isSubmitting ? '保存中...' : '保存修改' }}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
@@ -124,6 +171,7 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import axios from 'axios'
 
 interface Video {
   id: number;
@@ -155,6 +203,11 @@ interface Comment {
   replies?: Comment[];
 }
 
+interface EditForm {
+  name: string;
+  description: string;
+}
+
 export default defineComponent({
   name: 'CourseDetail',
   setup() {
@@ -168,6 +221,12 @@ export default defineComponent({
     const showCommentModal = ref(false)
     const currentVideoComments = ref<Comment[]>([])
     const newComment = ref('')
+    const showEditModal = ref(false)
+    const isSubmitting = ref(false)
+    const editForm = ref<EditForm>({
+      name: '',
+      description: ''
+    })
 
     const goBack = () => {
       router.back()
@@ -178,6 +237,46 @@ export default defineComponent({
         name: 'AISupport',
         params: { id: route.params.id }
       })
+    }
+
+    const closeEditModal = () => {
+      showEditModal.value = false
+      if (course.value) {
+        editForm.value = {
+          name: course.value.name,
+          description: course.value.description
+        }
+      }
+      isSubmitting.value = false
+    }
+
+    const submitEdit = async () => {
+      try {
+        isSubmitting.value = true
+        const courseId = Number(route.params.id)
+        
+        const response = await axios.put(`http://localhost:8081/courses/${courseId}`, {
+          title: editForm.value.name,
+          description: editForm.value.description,
+          creatorId: 1  // 这里应该使用实际的用户ID
+        })
+
+        if (response.data.code === 200) {
+          if (course.value) {
+            course.value.name = editForm.value.name
+            course.value.description = editForm.value.description
+          }
+          alert('课程信息更新成功！')
+          closeEditModal()
+        } else {
+          alert('更新失败：' + response.data.message)
+        }
+      } catch (error) {
+        console.error('更新课程信息时出错：', error)
+        alert('更新失败，请稍后重试')
+      } finally {
+        isSubmitting.value = false
+      }
     }
 
     onMounted(() => {
@@ -193,6 +292,12 @@ export default defineComponent({
         level: '高级',
         progress: 65,
         image: '/course-images/vue-advanced.jpg'
+      }
+
+      // 初始化编辑表单
+      editForm.value = {
+        name: course.value.name,
+        description: course.value.description
       }
 
       // 模拟课程视频数据
@@ -325,7 +430,12 @@ export default defineComponent({
       likeComment,
       replyToComment,
       goBack,
-      goToAISupport
+      goToAISupport,
+      showEditModal,
+      editForm,
+      isSubmitting,
+      closeEditModal,
+      submitEdit
     }
   }
 })
@@ -717,6 +827,148 @@ export default defineComponent({
 
 .submit-btn:hover {
   background-color: #2c5282;
+}
+
+.title-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.edit-btn {
+  padding: 0.6rem 1.2rem;
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.edit-btn:hover {
+  background-color: #1976D2;
+  transform: translateY(-2px);
+}
+
+.edit-btn i {
+  font-size: 1rem;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e6f3ff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: #2c5282;
+  font-size: 1.5rem;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #4a5568;
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #e6f3ff;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #2196F3;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.cancel-btn,
+.submit-btn {
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.cancel-btn {
+  background-color: #e2e8f0;
+  color: #4a5568;
+}
+
+.cancel-btn:hover {
+  background-color: #cbd5e0;
+}
+
+.submit-btn {
+  background-color: #2196F3;
+  color: white;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background-color: #1976D2;
+}
+
+.submit-btn:disabled {
+  background-color: #90caf9;
+  cursor: not-allowed;
+}
+
+.submit-btn i {
+  margin-right: 0.5rem;
 }
 
 @media (max-width: 768px) {
