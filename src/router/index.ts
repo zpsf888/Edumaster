@@ -3,6 +3,7 @@ import { useUserStore } from '../store/user'
 import CourseManagement from '../views/CourseManagement.vue'
 import CourseDetail from '../views/CourseDetail.vue'
 import AISupport from '../views/AISupport.vue'
+import CourseLearning from '../views/CourseLearning.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -39,6 +40,12 @@ const router = createRouter({
       path: '/course/:id/ai-support',
       name: 'AISupport',
       component: AISupport,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/course-learning/:id',
+      name: 'CourseLearning',
+      component: CourseLearning,
       meta: { requiresAuth: true }
     }
   ]

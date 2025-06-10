@@ -18,9 +18,13 @@
               <i class="fas fa-play"></i>
               继续学习
             </button>
-            <button class="card-btn quit-btn" @click="handleQuitCourse(course.courseId)">
-              <i class="fas fa-sign-out-alt"></i>
-              退出课程
+            <button 
+              class="card-btn quit-btn" 
+              @click="handleQuitCourse(course.courseId)"
+              :disabled="quittingCourseId === course.courseId"
+            >
+              <i class="fas" :class="quittingCourseId === course.courseId ? 'fa-spinner fa-spin' : 'fa-sign-out-alt'"></i>
+              {{ quittingCourseId === course.courseId ? '退出中...' : '退出课程' }}
             </button>
           </div>
         </div>
@@ -31,6 +35,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import axios from 'axios'
 
 interface Course {
@@ -47,11 +52,18 @@ interface CourseResponse {
   message: string;
 }
 
+interface QuitCourseResponse {
+  code: number;
+  message: string;
+}
+
 export default defineComponent({
   name: 'MyCourses',
   setup() {
+    const router = useRouter()
     const myCourses = ref<Course[]>([])
     const isLoading = ref(true)
+    const quittingCourseId = ref<number | null>(null)
 
     const fetchMyCourses = async () => {
       try {
@@ -78,12 +90,34 @@ export default defineComponent({
     }
 
     const handleContinueCourse = (courseId: number) => {
-      console.log('继续学习课程:', courseId)
+      router.push(`/course-learning/${courseId}`)
     }
 
-    const handleQuitCourse = (courseId: number) => {
-      if (confirm('确定要退出这个课程吗？')) {
-        console.log('退出课程:', courseId)
+    const handleQuitCourse = async (courseId: number) => {
+      if (quittingCourseId.value === courseId) return
+      
+      if (!confirm('确定要退出这个课程吗？')) {
+        return
+      }
+
+      try {
+        quittingCourseId.value = courseId
+        // TODO: 从用户状态获取userId
+        const userId = 1 // 临时使用固定值，后续需要从用户状态获取
+        const response = await axios.delete<QuitCourseResponse>(`http://localhost:8081/students/${userId}/courses/${courseId}`)
+        
+        if (response.data.code === 200) {
+          alert('成功退出课程')
+          // 刷新课程列表
+          await fetchMyCourses()
+        } else {
+          throw new Error(response.data.message || '退出课程失败')
+        }
+      } catch (error) {
+        console.error('退出课程时出错：', error)
+        alert(error instanceof Error ? error.message : '退出课程失败，请稍后重试')
+      } finally {
+        quittingCourseId.value = null
       }
     }
 
@@ -94,6 +128,7 @@ export default defineComponent({
     return {
       myCourses,
       isLoading,
+      quittingCourseId,
       handleContinueCourse,
       handleQuitCourse
     }
@@ -199,6 +234,11 @@ export default defineComponent({
 
 .quit-btn:hover {
   background-color: #da190b;
+}
+
+.quit-btn:disabled {
+  background-color: #a0aec0;
+  cursor: not-allowed;
 }
 
 .loading-state {
