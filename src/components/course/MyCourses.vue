@@ -90,7 +90,10 @@ export default defineComponent({
     }
 
     const handleContinueCourse = (courseId: number) => {
-      router.push(`/course-learning/${courseId}`)
+      router.push({
+        name: 'CourseDetail',
+        params: { id: courseId.toString() }
+      })
     }
 
     const handleQuitCourse = async (courseId: number) => {
