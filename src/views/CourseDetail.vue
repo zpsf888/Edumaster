@@ -1,98 +1,101 @@
 <template>
   <div class="course-detail">
-    <div class="header-actions">
-      <div class="back-button" @click="goBack">
-        <i class="fas fa-arrow-left"></i>
-        返回课程列表
-      </div>
-      <button class="ai-support-btn" @click="goToAISupport">
-        <i class="fas fa-robot"></i>
-        AI智能答疑
-      </button>
+    <div v-if="isLoading" class="loading-state">
+      <i class="fas fa-spinner fa-spin"></i>
+      加载中...
     </div>
-    <div class="course-header">
-      <div class="course-info">
-        <div class="title-section">
-          <h1>{{ course?.name }}</h1>
-          <button class="edit-btn" @click="showEditModal = true">
-            <i class="fas fa-edit"></i>
-            编辑课程简介
-          </button>
+    <template v-else>
+      <div class="header-actions">
+        <div class="back-button" @click="goBack">
+          <i class="fas fa-arrow-left"></i>
+          返回课程列表
         </div>
-        <p class="instructor">讲师：{{ course?.instructor }}</p>
-        <p class="description">{{ course?.description }}</p>
-        <div class="meta">
-          <span><i class="fas fa-clock"></i> {{ course?.duration }}</span>
-          <span><i class="fas fa-signal"></i> {{ course?.level }}</span>
-          <span><i class="fas fa-chart-line"></i> 学习进度：{{ course?.progress }}%</span>
-        </div>
+        <button class="ai-support-btn" @click="goToAISupport">
+          <i class="fas fa-robot"></i>
+          AI智能答疑
+        </button>
       </div>
-    </div>
-
-    <!-- 编辑课程弹窗 -->
-    <div v-if="showEditModal" class="modal-overlay" @click="closeEditModal">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h2>编辑课程简介</h2>
-          <button class="close-btn" @click="closeEditModal">&times;</button>
-        </div>
-        <div class="modal-body">
-          <form @submit.prevent="submitEdit">
-            <div class="form-group">
-              <label for="courseName">课程名称</label>
-              <input
-                type="text"
-                id="courseName"
-                v-model="editForm.name"
-                placeholder="请输入课程名称"
-                required
-              >
-            </div>
-            <div class="form-group">
-              <label for="courseDescription">课程简介</label>
-              <textarea
-                id="courseDescription"
-                v-model="editForm.description"
-                placeholder="请输入课程简介"
-                rows="4"
-                required
-              ></textarea>
-            </div>
-            <div class="form-actions">
-              <button type="button" class="cancel-btn" @click="closeEditModal">取消</button>
-              <button type="submit" class="submit-btn" :disabled="isSubmitting">
-                <i class="fas" :class="isSubmitting ? 'fa-spinner fa-spin' : 'fa-check'"></i>
-                {{ isSubmitting ? '保存中...' : '保存修改' }}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <div class="course-content">
-      <h2>课程目录</h2>
-      <div class="video-list">
-        <div v-for="video in courseVideos" :key="video.id" class="video-item" 
-          :class="{ 'completed': video.completed }"
-          @click="playVideo(video)">
-          <div class="video-info">
-            <i class="fas" :class="video.completed ? 'fa-check-circle' : 'fa-play-circle'"></i>
-            <span class="video-title">{{ video.title }}</span>
-            <span class="video-duration">{{ video.duration }}</span>
-          </div>
-          <div class="video-actions">
-            <div class="video-progress" v-if="video.completed">
-              <span class="progress-text">已完成</span>
-            </div>
-            <button class="comment-btn" @click.stop="showComments(video)">
-              <i class="fas fa-comments"></i>
-              查看评论
+      <div class="course-header">
+        <div class="course-info">
+          <div class="title-section">
+            <h1>{{ course?.name }}</h1>
+            <button class="edit-btn" @click="showEditModal = true">
+              <i class="fas fa-edit"></i>
+              编辑课程简介
             </button>
           </div>
+          <div class="course-meta">
+            <span class="course-number">课号：{{ course?.courseNumber }}</span>
+          </div>
+          <p class="description">{{ course?.description }}</p>
         </div>
       </div>
-    </div>
+
+      <!-- 编辑课程弹窗 -->
+      <div v-if="showEditModal" class="modal-overlay" @click="closeEditModal">
+        <div class="modal-content" @click.stop>
+          <div class="modal-header">
+            <h2>编辑课程简介</h2>
+            <button class="close-btn" @click="closeEditModal">&times;</button>
+          </div>
+          <div class="modal-body">
+            <form @submit.prevent="submitEdit">
+              <div class="form-group">
+                <label for="courseName">课程名称</label>
+                <input
+                  type="text"
+                  id="courseName"
+                  v-model="editForm.name"
+                  placeholder="请输入课程名称"
+                  required
+                >
+              </div>
+              <div class="form-group">
+                <label for="courseDescription">课程简介</label>
+                <textarea
+                  id="courseDescription"
+                  v-model="editForm.description"
+                  placeholder="请输入课程简介"
+                  rows="4"
+                  required
+                ></textarea>
+              </div>
+              <div class="form-actions">
+                <button type="button" class="cancel-btn" @click="closeEditModal">取消</button>
+                <button type="submit" class="submit-btn" :disabled="isSubmitting">
+                  <i class="fas" :class="isSubmitting ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+                  {{ isSubmitting ? '保存中...' : '保存修改' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="course-content">
+        <h2>课程目录</h2>
+        <div class="video-list">
+          <div v-for="video in courseVideos" :key="video.id" class="video-item" 
+            :class="{ 'completed': video.completed }"
+            @click="playVideo(video)">
+            <div class="video-info">
+              <i class="fas" :class="video.completed ? 'fa-check-circle' : 'fa-play-circle'"></i>
+              <span class="video-title">{{ video.title }}</span>
+              <span class="video-duration">{{ video.duration }}</span>
+            </div>
+            <div class="video-actions">
+              <div class="video-progress" v-if="video.completed">
+                <span class="progress-text">已完成</span>
+              </div>
+              <button class="comment-btn" @click.stop="showComments(video)">
+                <i class="fas fa-comments"></i>
+                查看评论
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
 
     <!-- 视频播放弹窗 -->
     <div v-if="showVideoPlayer" class="video-player-modal">
@@ -181,15 +184,40 @@ interface Video {
   videoUrl: string;
 }
 
+interface CourseLesson {
+  courseLessonId: number;
+  courseId: number;
+  lessonId: number;
+  title: string;
+  videoUrl: string;
+  description: string;
+}
+
+interface CourseBasicInfo {
+  courseId: number;
+  title: string;
+  description: string;
+  creatorId: number;
+}
+
+interface CourseInfoResponse {
+  code: number;
+  message: string;
+  data: CourseBasicInfo;
+}
+
 interface CourseDetail {
   id: number;
   name: string;
-  instructor: string;
   description: string;
-  duration: string;
-  level: string;
-  progress: number;
+  courseNumber: string;
   image: string;
+}
+
+interface CourseListResponse {
+  code: number;
+  message: string;
+  data: CourseLesson[];
 }
 
 interface Comment {
@@ -223,9 +251,72 @@ export default defineComponent({
     const newComment = ref('')
     const showEditModal = ref(false)
     const isSubmitting = ref(false)
+    const isLoading = ref(true)
     const editForm = ref<EditForm>({
       name: '',
       description: ''
+    })
+
+    const fetchCourseBasicInfo = async (courseId: number) => {
+      try {
+        const response = await axios.get<CourseInfoResponse>(`http://localhost:8081/courses/${courseId}`)
+        if (response.data.code === 200) {
+          const courseInfo = response.data.data
+          course.value = {
+            id: courseInfo.courseId,
+            name: courseInfo.title,
+            description: courseInfo.description,
+            courseNumber: `CS${courseInfo.courseId.toString().padStart(3, '0')}`,
+            image: '/course-images/default.jpg'
+          }
+
+          // 初始化编辑表单
+          editForm.value = {
+            name: course.value.name,
+            description: course.value.description
+          }
+        } else {
+          alert('获取课程信息失败：' + response.data.message)
+        }
+      } catch (error) {
+        console.error('获取课程信息时出错：', error)
+        alert('获取课程信息失败，请稍后重试')
+      }
+    }
+
+    const fetchCourseDetails = async () => {
+      try {
+        isLoading.value = true
+        const courseId = Number(route.params.id)
+        
+        // 先获取课程基本信息
+        await fetchCourseBasicInfo(courseId)
+        
+        // 获取课程课节信息
+        const response = await axios.get<CourseListResponse>(`http://localhost:8081/courses/${courseId}`)
+        
+        if (response.data.code === 200) {
+          // 转换课程视频数据
+          courseVideos.value = response.data.data.map(lesson => ({
+            id: lesson.courseLessonId,
+            title: lesson.title,
+            duration: '00:00', // 这里可以后续添加视频时长
+            completed: false, // 这里可以后续添加完成状态
+            videoUrl: lesson.videoUrl
+          }))
+        } else {
+          alert('获取课程详情失败：' + response.data.message)
+        }
+      } catch (error) {
+        console.error('获取课程详情时出错：', error)
+        alert('获取课程详情失败，请稍后重试')
+      } finally {
+        isLoading.value = false
+      }
+    }
+
+    onMounted(() => {
+      fetchCourseDetails()
     })
 
     const goBack = () => {
@@ -278,60 +369,6 @@ export default defineComponent({
         isSubmitting.value = false
       }
     }
-
-    onMounted(() => {
-      // 模拟从API获取课程详情
-      const courseId = Number(route.params.id)
-      // 这里应该调用实际的API获取课程详情
-      course.value = {
-        id: courseId,
-        name: 'Vue.js 高级开发',
-        instructor: '张教授',
-        description: '深入学习 Vue.js 框架的高级特性和最佳实践',
-        duration: '30课时',
-        level: '高级',
-        progress: 65,
-        image: '/course-images/vue-advanced.jpg'
-      }
-
-      // 初始化编辑表单
-      editForm.value = {
-        name: course.value.name,
-        description: course.value.description
-      }
-
-      // 模拟课程视频数据
-      courseVideos.value = [
-        {
-          id: 1,
-          title: '第1章：课程介绍',
-          duration: '10:00',
-          completed: true,
-          videoUrl: '/videos/chapter1.mp4'
-        },
-        {
-          id: 2,
-          title: '第2章：Vue.js 基础回顾',
-          duration: '15:30',
-          completed: true,
-          videoUrl: '/videos/chapter2.mp4'
-        },
-        {
-          id: 3,
-          title: '第3章：组件化开发进阶',
-          duration: '20:15',
-          completed: false,
-          videoUrl: '/videos/chapter3.mp4'
-        },
-        {
-          id: 4,
-          title: '第4章：状态管理',
-          duration: '25:45',
-          completed: false,
-          videoUrl: '/videos/chapter4.mp4'
-        }
-      ]
-    })
 
     const playVideo = (video: Video) => {
       currentVideo.value = video
@@ -435,7 +472,8 @@ export default defineComponent({
       editForm,
       isSubmitting,
       closeEditModal,
-      submitEdit
+      submitEdit,
+      isLoading
     }
   }
 })
@@ -998,5 +1036,33 @@ export default defineComponent({
   .reply-list {
     margin-left: 1.5rem;
   }
+}
+
+.course-meta {
+  display: flex;
+  gap: 2rem;
+  color: #4a5568;
+  margin-bottom: 1.5rem;
+}
+
+.course-number {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #2c5282;
+  padding: 0.5rem 0;
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  color: #4a5568;
+  font-size: 1.2rem;
+}
+
+.loading-state i {
+  margin-right: 0.5rem;
+  font-size: 1.5rem;
 }
 </style> 
