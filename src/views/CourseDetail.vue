@@ -415,7 +415,7 @@ export default defineComponent({
         if (response.data.code === 200) {
           // 转换课程视频数据
           courseVideos.value = response.data.data.map(lesson => ({
-            id: lesson.courseLessonId,
+            id: lesson.lessonId,
             title: lesson.title,
             duration: '00:00', // 这里可以后续添加视频时长
             completed: false, // 这里可以后续添加完成状态
@@ -675,7 +675,7 @@ export default defineComponent({
       try {
         isDeleting.value = true
         deletingLessonId.value = lessonId
-
+        
         const response = await axios.delete<DeleteLessonResponse>(
           `http://localhost:8081/course-lessons/${courseId}/${lessonId}`
         )
