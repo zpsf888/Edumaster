@@ -1,23 +1,24 @@
 <template>
   <div class="my-courses-container">
-    <div class="courses-grid">
-      <div v-for="course in myCourses" :key="course.id" class="course-card">
+    <div v-if="isLoading" class="loading-state">
+      <i class="fas fa-spinner fa-spin"></i>
+      加载中...
+    </div>
+
+    <div v-else class="courses-grid">
+      <div v-for="course in myCourses" :key="course.courseId" class="course-card">
         <div class="course-info">
-          <h3>{{ course.name }}</h3>
+          <h3>{{ course.title }}</h3>
           <div class="course-meta">
             <span>课号：{{ course.courseNumber }}</span>
           </div>
-          <div class="progress-bar">
-            <div class="progress" :style="{ width: course.progress + '%' }"></div>
-          </div>
-          <p class="progress-text">完成度: {{ course.progress }}%</p>
           <p class="course-description">{{ course.description }}</p>
           <div class="card-actions">
-            <button class="card-btn continue-btn" @click="handleContinueCourse(course.id)">
+            <button class="card-btn continue-btn" @click="handleContinueCourse(course.courseId)">
               <i class="fas fa-play"></i>
               继续学习
             </button>
-            <button class="card-btn quit-btn" @click="handleQuitCourse(course.id)">
+            <button class="card-btn quit-btn" @click="handleQuitCourse(course.courseId)">
               <i class="fas fa-sign-out-alt"></i>
               退出课程
             </button>
@@ -29,38 +30,52 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue'
+import { defineComponent, ref, onMounted } from 'vue'
+import axios from 'axios'
 
 interface Course {
-  id: number;
-  name: string;
-  instructor: string;
+  courseId: number;
+  title: string;
   description: string;
+  creatorId: number;
   courseNumber: string;
-  progress: number;
+}
+
+interface CourseResponse {
+  code: number;
+  data: Course[];
+  message: string;
 }
 
 export default defineComponent({
   name: 'MyCourses',
   setup() {
-    const myCourses = ref<Course[]>([
-      {
-        id: 1,
-        name: 'Vue.js 高级开发',
-        instructor: '张老师',
-        description: '深入学习 Vue.js 框架的高级特性和最佳实践',
-        courseNumber: 'CS101',
-        progress: 75
-      },
-      {
-        id: 2,
-        name: 'TypeScript 实战',
-        instructor: '李老师',
-        description: '使用 TypeScript 开发大型应用的完整指南',
-        courseNumber: 'CS102',
-        progress: 30
+    const myCourses = ref<Course[]>([])
+    const isLoading = ref(true)
+
+    const fetchMyCourses = async () => {
+      try {
+        isLoading.value = true
+        // TODO: 从用户状态获取userId
+        const userId = 1 // 临时使用固定值，后续需要从用户状态获取
+        const response = await axios.get<CourseResponse>(`http://localhost:8081/students/${userId}/courses`)
+        
+        if (response.data.code === 200) {
+          // 为每个课程生成课号
+          myCourses.value = response.data.data.map(course => ({
+            ...course,
+            courseNumber: `CS${course.courseId.toString().padStart(3, '0')}`
+          }))
+        } else {
+          throw new Error(response.data.message || '获取课程列表失败')
+        }
+      } catch (error) {
+        console.error('获取我的课程列表时出错：', error)
+        alert(error instanceof Error ? error.message : '获取课程列表失败，请稍后重试')
+      } finally {
+        isLoading.value = false
       }
-    ])
+    }
 
     const handleContinueCourse = (courseId: number) => {
       console.log('继续学习课程:', courseId)
@@ -72,8 +87,13 @@ export default defineComponent({
       }
     }
 
+    onMounted(() => {
+      fetchMyCourses()
+    })
+
     return {
       myCourses,
+      isLoading,
       handleContinueCourse,
       handleQuitCourse
     }
@@ -138,27 +158,6 @@ export default defineComponent({
   border-top: 1px solid #e6f3ff;
 }
 
-.progress-bar {
-  width: 100%;
-  height: 8px;
-  background-color: #e6f3ff;
-  border-radius: 4px;
-  overflow: hidden;
-  margin: 1rem 0;
-}
-
-.progress {
-  height: 100%;
-  background-color: #4CAF50;
-  transition: width 0.3s ease;
-}
-
-.progress-text {
-  color: #718096;
-  font-size: 0.9rem;
-  margin-bottom: 1rem;
-}
-
 .card-actions {
   display: flex;
   gap: 1rem;
@@ -200,6 +199,20 @@ export default defineComponent({
 
 .quit-btn:hover {
   background-color: #da190b;
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  color: #4a5568;
+  font-size: 1.2rem;
+}
+
+.loading-state i {
+  margin-right: 0.5rem;
+  font-size: 1.5rem;
 }
 
 @media (max-width: 1200px) {

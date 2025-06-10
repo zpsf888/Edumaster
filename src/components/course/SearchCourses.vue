@@ -28,9 +28,13 @@
           </div>
           <p class="course-description">{{ course.description }}</p>
           <div class="card-actions">
-            <button class="card-btn join-btn" @click="handleJoinCourse(course.course_id)">
-              <i class="fas fa-sign-in-alt"></i>
-              加入课程
+            <button 
+              class="card-btn join-btn" 
+              @click="handleJoinCourse(course.course_id)"
+              :disabled="joiningCourseId === course.course_id"
+            >
+              <i class="fas" :class="joiningCourseId === course.course_id ? 'fa-spinner fa-spin' : 'fa-sign-in-alt'"></i>
+              {{ joiningCourseId === course.course_id ? '加入中...' : '加入课程' }}
             </button>
           </div>
         </div>
@@ -57,6 +61,11 @@ interface CourseResponse {
   message: string;
 }
 
+interface JoinCourseResponse {
+  code: number;
+  message: string;
+}
+
 export default defineComponent({
   name: 'SearchCourses',
   setup() {
@@ -64,6 +73,7 @@ export default defineComponent({
     const courses = ref<Course[]>([])
     const isLoading = ref(true)
     const isSearching = ref(false)
+    const joiningCourseId = ref<number | null>(null)
 
     const fetchCourses = async () => {
       try {
@@ -116,8 +126,28 @@ export default defineComponent({
       await searchCourses(searchQuery.value)
     }
 
-    const handleJoinCourse = (courseId: number) => {
-      console.log('加入课程:', courseId)
+    const handleJoinCourse = async (courseId: number) => {
+      if (joiningCourseId.value === courseId) return
+
+      try {
+        joiningCourseId.value = courseId
+        // TODO: 从用户状态获取userId
+        const userId = 1 // 临时使用固定值，后续需要从用户状态获取
+        const response = await axios.post<JoinCourseResponse>(`http://localhost:8081/students/${userId}/courses/${courseId}`)
+        
+        if (response.data.code === 200) {
+          alert('成功加入课程')
+          // 可以选择刷新课程列表
+          await fetchCourses()
+        } else {
+          throw new Error(response.data.message || '加入课程失败')
+        }
+      } catch (error) {
+        console.error('加入课程时出错：', error)
+        alert(error instanceof Error ? error.message : '加入课程失败，请稍后重试')
+      } finally {
+        joiningCourseId.value = null
+      }
     }
 
     onMounted(() => {
@@ -129,6 +159,7 @@ export default defineComponent({
       courses,
       isLoading,
       isSearching,
+      joiningCourseId,
       handleSearch,
       handleJoinCourse
     }
