@@ -293,7 +293,7 @@ export default defineComponent({
         await fetchCourseBasicInfo(courseId)
         
         // 获取课程课节信息
-        const response = await axios.get<CourseListResponse>(`http://localhost:8081/courses/${courseId}`)
+        const response = await axios.get<CourseListResponse>(`http://localhost:8081/course-lessons/course/${courseId}`)
         
         if (response.data.code === 200) {
           // 转换课程视频数据
