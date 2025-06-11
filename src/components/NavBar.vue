@@ -4,7 +4,7 @@
     <div class="nav-right">
       <template v-if="userStore.isLoggedIn">
         <div class="user-menu" @click="toggleMenu">
-          <i class="fa fa-user"></i> {{ userStore.username }}
+          <i class="fa fa-user"></i> {{ userStore.username || wy}}
           <div v-if="showMenu" class="dropdown">
             <button @click="logout">登出</button>
           </div>

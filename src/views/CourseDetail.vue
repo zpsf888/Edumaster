@@ -141,16 +141,11 @@
         <div class="comment-list">
           <div v-for="comment in currentVideoComments" :key="comment.id" class="comment-item">
             <div class="comment-user">
-              <img :src="comment.avatar" :alt="comment.username" class="user-avatar">
               <span class="username">{{ comment.username }}</span>
               <span class="comment-time">{{ comment.time }}</span>
             </div>
             <p class="comment-text">{{ comment.content }}</p>
             <div class="comment-actions">
-              <button class="like-btn" @click="likeComment(comment)">
-                <i class="fas" :class="comment.isLiked ? 'fa-heart' : 'fa-heart-o'"></i>
-                {{ comment.likes }}
-              </button>
               <button class="reply-btn" @click="replyToComment(comment)">
                 <i class="fas fa-reply"></i>
                 回复
@@ -159,7 +154,6 @@
             <div v-if="comment.replies && comment.replies.length > 0" class="reply-list">
               <div v-for="reply in comment.replies" :key="reply.id" class="reply-item">
                 <div class="comment-user">
-                  <img :src="reply.avatar" :alt="reply.username" class="user-avatar">
                   <span class="username">{{ reply.username }}</span>
                   <span class="comment-time">{{ reply.time }}</span>
                 </div>
@@ -247,6 +241,7 @@
 import { defineComponent, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
+import { useUserStore } from '../store/user'
 
 interface Video {
   id: number;
@@ -295,11 +290,8 @@ interface CourseListResponse {
 interface Comment {
   id: number;
   username: string;
-  avatar: string;
   content: string;
   time: string;
-  likes: number;
-  isLiked: boolean;
   replies?: Comment[];
 }
 
@@ -343,6 +335,7 @@ export default defineComponent({
   setup() {
     const route = useRoute()
     const router = useRouter()
+    const userStore = useUserStore()
     const course = ref<CourseDetail | null>(null)
     const courseVideos = ref<Video[]>([])
     const showVideoPlayer = ref(false)
@@ -507,32 +500,23 @@ export default defineComponent({
       currentVideoComments.value = [
         {
           id: 1,
-          username: '学习达人',
-          avatar: '/avatars/user1.jpg',
+          username: 'cpj',
           content: '这节课讲得很好，概念讲解得特别清晰！',
-          time: '2024-01-20 14:30',
-          likes: 12,
-          isLiked: false,
+          time: '2025-05-28 14:37',
           replies: [
             {
               id: 11,
-              username: '前端新手',
-              avatar: '/avatars/user2.jpg',
+              username: 'zcy',
               content: '同意，特别是关于组件化的部分讲解很透彻',
-              time: '2024-01-20 15:00',
-              likes: 3,
-              isLiked: false
+              time: '2025-05-29 11:28',
             }
           ]
         },
         {
           id: 2,
-          username: 'Vue爱好者',
-          avatar: '/avatars/user3.jpg',
+          username: 'lzy',
           content: '老师讲得很专业，但是希望能多一些实战案例',
-          time: '2024-01-20 16:45',
-          likes: 8,
-          isLiked: false
+          time: '2025-06-01 16:45',
         }
       ]
     }
@@ -547,21 +531,13 @@ export default defineComponent({
       
       const comment: Comment = {
         id: Date.now(),
-        username: '当前用户',
-        avatar: '/avatars/default.jpg',
+        username: userStore.username || '匿名用户',
         content: newComment.value,
         time: new Date().toLocaleString(),
-        likes: 0,
-        isLiked: false
       }
       
       currentVideoComments.value.unshift(comment)
       newComment.value = ''
-    }
-
-    const likeComment = (comment: Comment) => {
-      comment.isLiked = !comment.isLiked
-      comment.likes += comment.isLiked ? 1 : -1
     }
 
     const replyToComment = (comment: Comment) => {
@@ -708,7 +684,6 @@ export default defineComponent({
       showComments,
       closeComments,
       submitComment,
-      likeComment,
       replyToComment,
       goBack,
       goToAISupport,
@@ -1061,13 +1036,6 @@ export default defineComponent({
   margin-bottom: 0.5rem;
 }
 
-.user-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
 .username {
   font-weight: 500;
   color: #2d3748;
@@ -1090,7 +1058,7 @@ export default defineComponent({
   margin-top: 0.5rem;
 }
 
-.like-btn, .reply-btn {
+.reply-btn {
   background: none;
   border: none;
   color: #718096;
@@ -1101,7 +1069,7 @@ export default defineComponent({
   font-size: 0.9rem;
 }
 
-.like-btn:hover, .reply-btn:hover {
+.reply-btn:hover {
   color: #3182ce;
 }
 

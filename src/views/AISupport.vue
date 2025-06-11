@@ -20,7 +20,8 @@
               <span class="name">{{ message.type === 'ai' ? 'AI助手' : '我' }}</span>
               <span class="time">{{ message.time }}</span>
             </div>
-            <div class="message-text">{{ message.content }}</div>
+            <div class="message-text" v-if="message.type === 'user'">{{ message.content }}</div>
+            <div class="message-text markdown-body" v-else v-html="md.render(message.content)"></div>
           </div>
         </div>
       </div>
@@ -42,9 +43,10 @@
             placeholder="输入你的问题..."
             @keyup.enter.prevent="sendMessage"
             rows="2"
+            :disabled="isWaitingResponse"
           ></textarea>
-          <button class="send-button" @click="sendMessage" :disabled="!userInput.trim()">
-            <i class="fas fa-paper-plane"></i>
+          <button class="send-button" @click="sendMessage" :disabled="!userInput.trim() || isWaitingResponse">
+            <i class="fas" :class="isWaitingResponse ? 'fa-spinner fa-spin' : 'fa-paper-plane'"></i>
           </button>
         </div>
       </div>
@@ -55,6 +57,8 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import axios from 'axios'
+import MarkdownIt from 'markdown-it'
 
 interface Message {
   id: number;
@@ -72,6 +76,8 @@ export default defineComponent({
     const userInput = ref('')
     const chatContainer = ref<HTMLElement | null>(null)
     const showSuggestions = ref(true)
+    const md = new MarkdownIt()
+    const isWaitingResponse = ref(false)
 
     const suggestions = [
       '这节课的重点内容是什么？',
@@ -97,7 +103,7 @@ export default defineComponent({
     }
 
     const sendMessage = async () => {
-      if (!userInput.value.trim()) return
+      if (!userInput.value.trim() || isWaitingResponse.value) return
 
       // 添加用户消息
       messages.value.push({
@@ -111,27 +117,29 @@ export default defineComponent({
       userInput.value = ''
       await scrollToBottom()
 
-      // 模拟AI响应
-      setTimeout(() => {
+      // 调用AI API
+      isWaitingResponse.value = true
+      try {
+        const response = await axios.get(`http://localhost:8082/ai/${encodeURIComponent(userQuestion)}`)
+        const aiResponse = response.data.reply
+        
         messages.value.push({
           id: Date.now(),
           type: 'ai',
-          content: generateAIResponse(userQuestion),
+          content: aiResponse,
           time: new Date().toLocaleTimeString()
         })
-        scrollToBottom()
-      }, 1000)
-    }
-
-    const generateAIResponse = (question: string): string => {
-      // 这里可以替换为实际的AI响应逻辑
-      const responses = [
-        '这是一个很好的问题！让我为您详细解答...',
-        '根据课程内容，我建议您可以...',
-        '这个问题的关键点在于...',
-        '您可以参考以下示例...'
-      ]
-      return responses[Math.floor(Math.random() * responses.length)]
+      } catch (error) {
+        messages.value.push({
+          id: Date.now(),
+          type: 'ai',
+          content: '抱歉，我遇到了一些问题，请稍后再试。',
+          time: new Date().toLocaleTimeString()
+        })
+      } finally {
+        isWaitingResponse.value = false
+        await scrollToBottom()
+      }
     }
 
     onMounted(() => {
@@ -152,7 +160,9 @@ export default defineComponent({
       suggestions,
       goBack,
       sendMessage,
-      useQuestion
+      useQuestion,
+      md,
+      isWaitingResponse
     }
   }
 })
@@ -339,5 +349,86 @@ textarea {
     padding: 0.4rem 0.8rem;
     font-size: 0.8rem;
   }
+}
+
+.markdown-body {
+  line-height: 1.6;
+}
+
+.markdown-body :deep(h1),
+.markdown-body :deep(h2),
+.markdown-body :deep(h3),
+.markdown-body :deep(h4),
+.markdown-body :deep(h5),
+.markdown-body :deep(h6) {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+}
+
+.markdown-body :deep(p) {
+  margin: 0.5em 0;
+}
+
+.markdown-body :deep(code) {
+  background-color: rgba(0, 0, 0, 0.1);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.markdown-body :deep(pre) {
+  background-color: rgba(0, 0, 0, 0.1);
+  padding: 1em;
+  border-radius: 5px;
+  overflow-x: auto;
+}
+
+.markdown-body :deep(pre code) {
+  background-color: transparent;
+  padding: 0;
+}
+
+.markdown-body :deep(ul),
+.markdown-body :deep(ol) {
+  padding-left: 2em;
+  margin: 0.5em 0;
+}
+
+.markdown-body :deep(blockquote) {
+  border-left: 4px solid #e2e8f0;
+  margin: 0.5em 0;
+  padding-left: 1em;
+  color: #4a5568;
+}
+
+.markdown-body :deep(table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.5em 0;
+}
+
+.markdown-body :deep(th),
+.markdown-body :deep(td) {
+  border: 1px solid #e2e8f0;
+  padding: 0.5em;
+}
+
+.markdown-body :deep(th) {
+  background-color: #f7fafc;
+}
+
+.markdown-body :deep(img) {
+  max-width: 100%;
+  height: auto;
+}
+
+.markdown-body :deep(a) {
+  color: #3182ce;
+  text-decoration: none;
+}
+
+.markdown-body :deep(a:hover) {
+  text-decoration: underline;
 }
 </style> 
