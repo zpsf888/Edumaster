@@ -531,7 +531,7 @@ export default defineComponent({
       
       const comment: Comment = {
         id: Date.now(),
-        username: userStore.username || '匿名用户',
+        username: userStore.username || '张三',
         content: newComment.value,
         time: new Date().toLocaleString(),
       }

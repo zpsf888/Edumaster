@@ -25,8 +25,12 @@
           </div>
           <p class="course-description">{{ course.description }}</p>
           <div class="card-actions">
-            <button class="card-btn join-btn" @click="handleJoinCourse(course.id)">
-              加入课程
+            <button 
+              class="card-btn join-btn" 
+              @click="handleJoinCourse(course.id)"
+              :disabled="joiningCourseId === course.id"
+            >
+              {{ joiningCourseId === course.id ? '加入中...' : '加入课程' }}
             </button>
           </div>
         </div>
@@ -42,6 +46,7 @@
 
 <script lang="ts">
 import { defineComponent, ref } from 'vue'
+import axios from 'axios'
 
 interface RecommendedCourse {
   id: number;
@@ -52,11 +57,17 @@ interface RecommendedCourse {
   matchRate: number;
 }
 
+interface JoinCourseResponse {
+  code: number;
+  message: string;
+}
+
 export default defineComponent({
   name: 'RecommendedCourses',
   setup() {
     const isGenerating = ref(false)
     const recommendedCourses = ref<RecommendedCourse[]>([])
+    const joiningCourseId = ref<number | null>(null)
 
     const generateRecommendations = async () => {
       isGenerating.value = true
@@ -70,7 +81,7 @@ export default defineComponent({
           name: 'Java Web开发',
           instructor: '李四',
           description: '本课程专注于Java Web开发技术，包括Servlet、JSP、Spring MVC等。学生将学习如何构建动态Web应用程序，以及如何使用Java技术处理Web请求、生成响应和与数据库交互。',
-          courseNumber: 'CS101',
+          courseNumber: 'CS008',
           matchRate: 95
         },
         {
@@ -78,7 +89,7 @@ export default defineComponent({
           name: 'Java基础编程',
           instructor: '王五',
           description: '本课程是Java编程的入门课程，旨在帮助初学者掌握Java语言的基本语法和编程概念。课程内容包括变量、数据类型、控制结构、方法、数组等基础知识，并通过实例讲解如何编写简单的Java程序。',
-          courseNumber: 'CS102',
+          courseNumber: 'CS009',
           matchRate: 88
         }
       ]
@@ -86,15 +97,36 @@ export default defineComponent({
       isGenerating.value = false
     }
 
-    const handleJoinCourse = (courseId: number) => {
-      console.log('加入课程:', courseId)
+    const handleJoinCourse = async (courseId: number) => {
+      if (joiningCourseId.value === courseId) return
+
+      try {
+        joiningCourseId.value = courseId
+        // TODO: 从用户状态获取userId
+        const userId = 1 // 临时使用固定值，后续需要从用户状态获取
+        const response = await axios.post<JoinCourseResponse>(`http://localhost:8081/students/${userId}/courses/${8}`)
+        
+        if (response.data.code === 200) {
+          alert('成功加入课程')
+          // 可以选择刷新推荐列表
+          await generateRecommendations()
+        } else {
+          throw new Error(response.data.message || '加入课程失败')
+        }
+      } catch (error) {
+        console.error('加入课程时出错：', error)
+        alert(error instanceof Error ? error.message : '加入课程失败，请稍后重试')
+      } finally {
+        joiningCourseId.value = null
+      }
     }
 
     return {
       isGenerating,
       recommendedCourses,
       generateRecommendations,
-      handleJoinCourse
+      handleJoinCourse,
+      joiningCourseId
     }
   }
 })
