@@ -120,7 +120,7 @@ export default defineComponent({
       // 调用AI API
       isWaitingResponse.value = true
       try {
-        const response = await axios.get(`http://localhost:8082/ai/${encodeURIComponent(userQuestion)}`)
+        const response = await axios.get(`http://localhost:8087/ai/${encodeURIComponent(userQuestion)}`)
         const aiResponse = response.data.reply
         
         messages.value.push({
