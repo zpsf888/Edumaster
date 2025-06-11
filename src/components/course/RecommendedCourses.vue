@@ -67,17 +67,17 @@ export default defineComponent({
       recommendedCourses.value = [
         {
           id: 1,
-          name: 'Vue.js 高级开发',
-          instructor: '张老师',
-          description: '深入学习 Vue.js 框架的高级特性和最佳实践',
+          name: 'Java Web开发',
+          instructor: '李四',
+          description: '本课程专注于Java Web开发技术，包括Servlet、JSP、Spring MVC等。学生将学习如何构建动态Web应用程序，以及如何使用Java技术处理Web请求、生成响应和与数据库交互。',
           courseNumber: 'CS101',
           matchRate: 95
         },
         {
           id: 2,
-          name: 'TypeScript 实战',
-          instructor: '李老师',
-          description: '使用 TypeScript 开发大型应用的完整指南',
+          name: 'Java基础编程',
+          instructor: '王五',
+          description: '本课程是Java编程的入门课程，旨在帮助初学者掌握Java语言的基本语法和编程概念。课程内容包括变量、数据类型、控制结构、方法、数组等基础知识，并通过实例讲解如何编写简单的Java程序。',
           courseNumber: 'CS102',
           matchRate: 88
         }

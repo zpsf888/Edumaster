@@ -12,7 +12,7 @@
         </div>
         <div class="right-actions">
           <button class="new-lesson-btn" @click="openNewLessonModal">
-            新建课程
+            新建课程小节
           </button>
           <button class="ai-support-btn" @click="goToAISupport">
             AI智能答疑
@@ -191,15 +191,15 @@
               <input type="text" :value="course?.courseNumber" disabled class="form-control" />
             </div>
             <div class="form-group">
-              <label>小课号 <span class="required">*</span></label>
+              <label>课序号 <span class="required">*</span></label>
               <input type="text" v-model="newLessonForm.lessonNumber" class="form-control" placeholder="请输入小课号" />
             </div>
             <div class="form-group">
-              <label>小课标题 <span class="required">*</span></label>
+              <label>标题 <span class="required">*</span></label>
               <input type="text" v-model="newLessonForm.title" class="form-control" placeholder="请输入小课标题" />
             </div>
             <div class="form-group">
-              <label>小课简介 <span class="required">*</span></label>
+              <label>简介 <span class="required">*</span></label>
               <textarea v-model="newLessonForm.description" class="form-control" rows="4" placeholder="请输入小课简介"></textarea>
             </div>
             <div class="form-group">
@@ -408,7 +408,7 @@ export default defineComponent({
           courseVideos.value = response.data.data.map(lesson => ({
             id: lesson.lessonId,
             title: lesson.title,
-            duration: '00:00', // 这里可以后续添加视频时长
+            duration: '19:49', // 这里可以后续添加视频时长
             completed: false, // 这里可以后续添加完成状态
             videoUrl: lesson.videoUrl
           }))
@@ -507,7 +507,7 @@ export default defineComponent({
             {
               id: 11,
               username: 'zcy',
-              content: '同意，特别是关于组件化的部分讲解很透彻',
+              content: '同意，讲解很透彻',
               time: '2025-05-29 11:28',
             }
           ]
